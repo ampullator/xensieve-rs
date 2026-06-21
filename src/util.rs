@@ -54,7 +54,7 @@ pub(crate) fn intersection(
     let md2 = m2 / d;
     let span: u64 = (s2 as i128 - s1 as i128).abs().try_into().unwrap();
 
-    if d != 1 && (span % d != 0) {
+    if d != 1 && !span.is_multiple_of(d) {
         return Ok((0, 0)); // no intersection
     }
     // NOTE: though this case was specified, it seems impossible to replicate
