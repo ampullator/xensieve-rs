@@ -8,6 +8,13 @@ fn test_sieve_new_a() {
 }
 
 #[test]
+fn test_sieve_new_generic_u32() {
+    let s1: Sieve<u32> = Sieve::new_typed("3@0|5@1|5@4");
+    assert_eq!(s1.to_string(), "Sieve{3@0|5@1|5@4}");
+    assert_eq!(s1.contains(6), true);
+}
+
+#[test]
 fn test_sieve_new_b() {
     let s1 = Sieve::new("!(3@0|5@1|5@4)|9@6");
     assert_eq!(s1.to_string(), "Sieve{!(3@0|5@1|5@4)|9@6}");

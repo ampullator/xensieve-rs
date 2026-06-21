@@ -1,4 +1,3 @@
-use std::cmp::Ordering;
 use std::fmt;
 use std::ops::BitAnd;
 use std::ops::BitOr;
@@ -11,24 +10,55 @@ mod util;
 
 //------------------------------------------------------------------------------
 
+pub trait UnsignedInt:
+    Copy
+    + Ord
+    + Eq
+    + fmt::Display
+    + fmt::Debug
+    + std::str::FromStr
+    + TryFrom<u128>
+    + Into<u128>
+    + std::ops::Rem<Output = Self>
+{
+}
+
+impl<T> UnsignedInt for T where
+    T: Copy
+        + Ord
+        + Eq
+        + fmt::Display
+        + fmt::Debug
+        + std::str::FromStr
+        + TryFrom<u128>
+        + Into<u128>
+        + std::ops::Rem<Output = Self>
+{
+}
+
+//------------------------------------------------------------------------------
+
 /// Container of integer values for the modulus and the shift of a Residual class.
 ///
 /// # Fields
 /// * `modulus` - The modulus.
 /// * `shift` - The shift.
 ///
-#[derive(Clone, Debug, Copy)]
-pub(crate) struct Residual {
-    modulus: u64,
-    shift: u64,
+#[derive(Clone, Debug, Copy, Eq, PartialEq, Ord, PartialOrd)]
+pub(crate) struct Residual<T = u64> {
+    modulus: T,
+    shift: T,
 }
 
-impl Residual {
-    pub(crate) fn new(modulus: u64, mut shift: u64) -> Self {
-        if modulus == 0 {
-            shift = 0;
+impl<T> Residual<T>
+where
+    T: UnsignedInt,
+{
+    pub(crate) fn new_typed(modulus: T, mut shift: T) -> Self {
+        if modulus.into() == 0 {
+            shift = modulus;
         } else {
-            shift %= modulus;
+            shift = shift % modulus;
         }
         Self { modulus, shift }
     }
@@ -36,49 +66,51 @@ impl Residual {
     /// Return `true` if the value is contained with this Sieve.
     ///
     pub(crate) fn contains(&self, value: i128) -> bool {
-        if self.modulus == 0 {
+        let modulus: u128 = self.modulus.into();
+        if modulus == 0 {
             return false;
         }
-        let pos: i128 = value - self.shift as i128;
-        pos % self.modulus as i128 == 0
+        let shift = self.shift.into() % modulus;
+        let value_mod = if value >= 0 {
+            (value as u128) % modulus
+        } else {
+            let mag = value.unsigned_abs() % modulus;
+            if mag == 0 {
+                0
+            } else {
+                modulus - mag
+            }
+        };
+        value_mod == shift
     }
 }
 
-impl fmt::Display for Residual {
+impl<T> fmt::Display for Residual<T>
+where
+    T: UnsignedInt,
+{
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         // let n = if self.invert {String::from("!")} else {String::new()};
         write!(f, "{}@{}", self.modulus, self.shift)
     }
 }
 
-impl BitAnd for Residual {
-    type Output = Residual;
+impl<T> BitAnd for Residual<T>
+where
+    T: UnsignedInt,
+{
+    type Output = Residual<T>;
 
     fn bitand(self, rhs: Self) -> Self::Output {
         let (m, s) = util::intersection(self.modulus, rhs.modulus, self.shift, rhs.shift).unwrap();
-        Self::new(m, s)
+        Self::new_typed(m, s)
     }
 }
 
-impl PartialEq for Residual {
-    fn eq(&self, other: &Self) -> bool {
-        self.modulus == other.modulus && self.shift == other.shift
-    }
-}
-
-impl Eq for Residual {}
-
-impl PartialOrd for Residual {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-impl Ord for Residual {
-    fn cmp(&self, other: &Self) -> Ordering {
-        self.modulus
-            .cmp(&other.modulus)
-            .then_with(|| self.shift.cmp(&other.shift))
+#[cfg(test)]
+impl Residual<u64> {
+    pub(crate) fn new(modulus: u64, shift: u64) -> Self {
+        Self::new_typed(modulus, shift)
     }
 }
 
@@ -87,15 +119,18 @@ impl Ord for Residual {
 /// A node in the graph of Residuals combined by logical operations.
 ///
 #[derive(Clone, Debug)]
-pub(crate) enum SieveNode {
-    Unit(Residual),
-    Intersection(Rc<SieveNode>, Rc<SieveNode>),
-    Union(Rc<SieveNode>, Rc<SieveNode>),
-    SymmetricDifference(Rc<SieveNode>, Rc<SieveNode>),
-    Inversion(Rc<SieveNode>),
+pub(crate) enum SieveNode<T = u64> {
+    Unit(Residual<T>),
+    Intersection(Rc<SieveNode<T>>, Rc<SieveNode<T>>),
+    Union(Rc<SieveNode<T>>, Rc<SieveNode<T>>),
+    SymmetricDifference(Rc<SieveNode<T>>, Rc<SieveNode<T>>),
+    Inversion(Rc<SieveNode<T>>),
 }
 
-impl fmt::Display for SieveNode {
+impl<T> fmt::Display for SieveNode<T>
+where
+    T: UnsignedInt,
+{
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let s: String = match self {
             SieveNode::Unit(residual) => residual.to_string(),
@@ -123,7 +158,10 @@ impl fmt::Display for SieveNode {
     }
 }
 
-impl SieveNode {
+impl<T> SieveNode<T>
+where
+    T: UnsignedInt,
+{
     /// Return `true` if the values is contained within this Sieve.
     ///
     pub fn contains(&self, value: i128) -> bool {
@@ -141,12 +179,15 @@ impl SieveNode {
 
 /// The representation of a Xenakis Sieve, constructed from a string notation of one or more Residual classes combined with logical operators. This Rust implementation follows the Python implementation in Ariza (2005), with significant performance and interface enhancements: https://direct.mit.edu/comj/article/29/2/40/93957
 #[derive(Clone, Debug)]
-pub struct Sieve {
-    root: Rc<SieveNode>,
+pub struct Sieve<T = u64> {
+    root: Rc<SieveNode<T>>,
 }
 
-impl BitAnd for Sieve {
-    type Output = Sieve;
+impl<T> BitAnd for Sieve<T>
+where
+    T: UnsignedInt,
+{
+    type Output = Sieve<T>;
 
     fn bitand(self, rhs: Self) -> Self::Output {
         Sieve {
@@ -155,8 +196,11 @@ impl BitAnd for Sieve {
     }
 }
 
-impl BitAnd for &Sieve {
-    type Output = Sieve;
+impl<T> BitAnd for &Sieve<T>
+where
+    T: UnsignedInt,
+{
+    type Output = Sieve<T>;
 
     fn bitand(self, rhs: Self) -> Self::Output {
         Sieve {
@@ -165,8 +209,11 @@ impl BitAnd for &Sieve {
     }
 }
 
-impl BitOr for Sieve {
-    type Output = Sieve;
+impl<T> BitOr for Sieve<T>
+where
+    T: UnsignedInt,
+{
+    type Output = Sieve<T>;
 
     fn bitor(self, rhs: Self) -> Self::Output {
         Sieve {
@@ -175,8 +222,11 @@ impl BitOr for Sieve {
     }
 }
 
-impl BitOr for &Sieve {
-    type Output = Sieve;
+impl<T> BitOr for &Sieve<T>
+where
+    T: UnsignedInt,
+{
+    type Output = Sieve<T>;
 
     fn bitor(self, rhs: Self) -> Self::Output {
         Sieve {
@@ -185,8 +235,11 @@ impl BitOr for &Sieve {
     }
 }
 
-impl BitXor for Sieve {
-    type Output = Sieve;
+impl<T> BitXor for Sieve<T>
+where
+    T: UnsignedInt,
+{
+    type Output = Sieve<T>;
 
     fn bitxor(self, rhs: Self) -> Self::Output {
         Sieve {
@@ -195,8 +248,11 @@ impl BitXor for Sieve {
     }
 }
 
-impl BitXor for &Sieve {
-    type Output = Sieve;
+impl<T> BitXor for &Sieve<T>
+where
+    T: UnsignedInt,
+{
+    type Output = Sieve<T>;
 
     fn bitxor(self, rhs: Self) -> Self::Output {
         Sieve {
@@ -208,8 +264,11 @@ impl BitXor for &Sieve {
     }
 }
 
-impl Not for Sieve {
-    type Output = Sieve;
+impl<T> Not for Sieve<T>
+where
+    T: UnsignedInt,
+{
+    type Output = Sieve<T>;
 
     fn not(self) -> Self::Output {
         Sieve {
@@ -218,8 +277,11 @@ impl Not for Sieve {
     }
 }
 
-impl Not for &Sieve {
-    type Output = Sieve;
+impl<T> Not for &Sieve<T>
+where
+    T: UnsignedInt,
+{
+    type Output = Sieve<T>;
 
     fn not(self) -> Self::Output {
         Sieve {
@@ -228,20 +290,21 @@ impl Not for &Sieve {
     }
 }
 
-impl fmt::Display for Sieve {
+impl<T> fmt::Display for Sieve<T>
+where
+    T: UnsignedInt,
+{
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "Sieve{{{}}}", self.root)
     }
 }
 
-impl Sieve {
-    /// Construct a Xenakis Sieve from a string representation.
-    ///
-    /// ```
-    /// let s = xensieve::Sieve::new("3@0|5@1");
-    /// assert_eq!(s.iter_value(0..15).collect::<Vec<_>>(), vec![0, 1, 3, 6, 9, 11, 12])
-    /// ````
-    pub fn new(value: &str) -> Self {
+impl<T> Sieve<T>
+where
+    T: UnsignedInt,
+{
+    /// Construct a Xenakis Sieve from a string representation for an explicit unsigned integer type.
+    pub fn new_typed(value: &str) -> Self {
         let mut stack: Vec<Self> = Vec::new();
         for token in parser::infix_to_postfix(value).expect("Parsing failure") {
             match token.as_str() {
@@ -265,9 +328,9 @@ impl Sieve {
                     stack.push(left | right);
                 }
                 operand => {
-                    let (m, s) = parser::residual_to_ints(operand)
+                    let (m, s) = parser::residual_to_ints::<T>(operand)
                         .expect("Invalid syntax: cannot parse Residual");
-                    let r = Residual::new(m, s);
+                    let r = Residual::new_typed(m, s);
                     let s = Self {
                         root: Rc::new(SieveNode::Unit(r)),
                     };
@@ -298,7 +361,7 @@ impl Sieve {
     pub fn iter_value(
         &self,
         iterator: impl Iterator<Item = i128>,
-    ) -> IterValue<impl Iterator<Item = i128>> {
+    ) -> IterValue<impl Iterator<Item = i128>, T> {
         // NOTE: do not want to clone self here...
         IterValue {
             iterator,
@@ -314,7 +377,7 @@ impl Sieve {
     pub fn iter_state(
         &self,
         iterator: impl Iterator<Item = i128>,
-    ) -> IterState<impl Iterator<Item = i128>> {
+    ) -> IterState<impl Iterator<Item = i128>, T> {
         IterState {
             iterator,
             sieve_node: self.root.clone(),
@@ -329,12 +392,24 @@ impl Sieve {
     pub fn iter_interval(
         &self,
         iterator: impl Iterator<Item = i128>,
-    ) -> IterInterval<impl Iterator<Item = i128>> {
+    ) -> IterInterval<impl Iterator<Item = i128>, T> {
         IterInterval {
             iterator,
             sieve_node: self.root.clone(),
             last: PositionLast::Init,
         }
+    }
+}
+
+impl Sieve<u64> {
+    /// Construct a Xenakis Sieve from a string representation.
+    ///
+    /// ```
+    /// let s = xensieve::Sieve::new("3@0|5@1");
+    /// assert_eq!(s.iter_value(0..15).collect::<Vec<_>>(), vec![0, 1, 3, 6, 9, 11, 12])
+    /// ````
+    pub fn new(value: &str) -> Self {
+        Self::new_typed(value)
     }
 }
 
@@ -347,17 +422,18 @@ impl Sieve {
 /// assert_eq!(s_iter.next().unwrap(), 18);
 /// assert_eq!(s_iter.next().unwrap(), 20);
 /// ```
-pub struct IterValue<I>
+pub struct IterValue<I, T = u64>
 where
     I: Iterator<Item = i128>,
 {
     iterator: I,
-    sieve_node: Rc<SieveNode>,
+    sieve_node: Rc<SieveNode<T>>,
 }
 
-impl<I> Iterator for IterValue<I>
+impl<I, T> Iterator for IterValue<I, T>
 where
     I: Iterator<Item = i128>,
+    T: UnsignedInt,
 {
     type Item = i128;
 
@@ -379,17 +455,18 @@ where
 /// assert_eq!(s_iter.next().unwrap(), false);
 /// assert_eq!(s_iter.next().unwrap(), true);
 /// ```
-pub struct IterState<I>
+pub struct IterState<I, T = u64>
 where
     I: Iterator<Item = i128>,
 {
     iterator: I,
-    sieve_node: Rc<SieveNode>,
+    sieve_node: Rc<SieveNode<T>>,
 }
 
-impl<I> Iterator for IterState<I>
+impl<I, T> Iterator for IterState<I, T>
 where
     I: Iterator<Item = i128>, // the values returned by iterator
+    T: UnsignedInt,
 {
     type Item = bool; // the value returned
 
@@ -416,18 +493,19 @@ enum PositionLast {
 /// assert_eq!(s_iter.next().unwrap(), 1);
 /// assert_eq!(s_iter.next().unwrap(), 3);
 /// ```
-pub struct IterInterval<I>
+pub struct IterInterval<I, T = u64>
 where
     I: Iterator<Item = i128>,
 {
     iterator: I,
-    sieve_node: Rc<SieveNode>,
+    sieve_node: Rc<SieveNode<T>>,
     last: PositionLast,
 }
 
-impl<I> Iterator for IterInterval<I>
+impl<I, T> Iterator for IterInterval<I, T>
 where
     I: Iterator<Item = i128>,
+    T: UnsignedInt,
 {
     type Item = i128;
 

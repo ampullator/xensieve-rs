@@ -1,16 +1,21 @@
 use std::collections::VecDeque;
 
+use crate::UnsignedInt;
+
 /// Given a Residual string representation, parse it into two integers.
-pub(crate) fn residual_to_ints(value: &str) -> Result<(u64, u64), &'static str> {
+pub(crate) fn residual_to_ints<T>(value: &str) -> Result<(T, T), &'static str>
+where
+    T: UnsignedInt,
+{
     let parts: Vec<&str> = value.split('@').collect();
     if parts.len() != 2 {
         return Err("Input must contain one '@' character separating two numbers.");
     }
     let m = parts[0]
-        .parse::<u64>()
+        .parse::<T>()
         .map_err(|_e| "Residual error parsing modulus")?;
     let s = parts[1]
-        .parse::<u64>()
+        .parse::<T>()
         .map_err(|_e| "Residual error parsing shift")?;
     Ok((m, s))
 }
@@ -93,32 +98,32 @@ mod tests {
 
     #[test]
     fn test_residual_to_ints_a() {
-        assert_eq!(residual_to_ints("3@1").unwrap(), (3, 1))
+        assert_eq!(residual_to_ints::<u64>("3@1").unwrap(), (3, 1))
     }
 
     #[test]
     fn test_residual_to_ints_b() {
-        assert_eq!(residual_to_ints("9@2").unwrap(), (9, 2))
+        assert_eq!(residual_to_ints::<u64>("9@2").unwrap(), (9, 2))
     }
 
     #[test]
     fn test_residual_to_ints_c() {
-        assert_eq!(residual_to_ints("0@5").unwrap(), (0, 5))
+        assert_eq!(residual_to_ints::<u64>("0@5").unwrap(), (0, 5))
     }
 
     #[test]
     fn test_residual_to_ints_d() {
-        assert!(residual_to_ints("0").is_err());
+        assert!(residual_to_ints::<u64>("0").is_err());
     }
 
     #[test]
     fn test_residual_to_ints_e() {
-        assert!(residual_to_ints("3@wer").is_err());
+        assert!(residual_to_ints::<u64>("3@wer").is_err());
     }
 
     #[test]
     fn test_residual_to_ints_f() {
-        assert!(residual_to_ints("foo@3").is_err());
+        assert!(residual_to_ints::<u64>("foo@3").is_err());
     }
 
     #[test]
