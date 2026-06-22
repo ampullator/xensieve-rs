@@ -24,12 +24,11 @@ The Xenakis Sieve is a tool for generating discrete interval patterns. Such patt
 
 This new Rust implementation (and Python wrapper) follows the Python implementation in Ariza (2005), with significant performance and interface enhancements: https://direct.mit.edu/comj/article/29/2/40/93957
 
-Code (Rust): https://github.com/ampullator/xensieve-rs
-Docs (Rust): https://docs.rs/xensieve
-Crate: https://crates.io/crates/xensieve
-
-Code (Python): https://github.com/ampullator/xensieve-py
-Packages: https://pypi.org/project/xensieve
+* Code (Rust): https://github.com/ampullator/xensieve-rs
+* Docs (Rust): https://docs.rs/xensieve
+* Crate: https://crates.io/crates/xensieve
+* Code (Python): https://github.com/ampullator/xensieve-py
+* Packages: https://pypi.org/project/xensieve
 
 
 
@@ -119,7 +118,7 @@ True
 
 
 
-# The `xensieve.Sieve` Interface (Rust)
+# The `xensieve::Sieve` Interface (Rust)
 
 The Sieves shown above can be created with `xensieve.Sieve` and used to produce iterators of integers, Boolean states, or interval widths. The `Sieve::new` constructor accepts arbitrarily complex Sieve expressions. `Sieve` is generic over unsigned integer types and defaults to `u64`; annotate the binding to select a different type.
 
