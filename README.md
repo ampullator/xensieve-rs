@@ -109,6 +109,13 @@ assert_eq!(s3.iter_value(0..100).collect::<Vec<_>>(), s4.iter_value(0..100).coll
 
 # What is New in `xensieve`
 
+## 1.0.0
+
+Improved memory management of nested Sieve using `Rc`.
+
+Made residual class integer representations generic.
+
+
 ## 0.8.0
 
 Documentation and CI improvements.
