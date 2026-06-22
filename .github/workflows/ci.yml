@@ -103,7 +103,7 @@ jobs:
         with:
           token: 6ecdfb7b-306b-4bdc-abbf-c393da9186c9
           files: coverage.lcov
-          slug: flexatone/xensieve-rs
+          slug: ampullator/xensieve-rs
 
   #-----------------------------------------------------------------------------
   publish:

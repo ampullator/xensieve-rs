@@ -5,8 +5,8 @@ version = "1.0.0"
 edition = "2021"
 rust-version = "1.87.0"
 authors = ["Christopher Ariza"]
-homepage = "https://github.com/flexatone/xensieve-rs"
-repository = "https://github.com/flexatone/xensieve-rs"
+homepage = "https://github.com/ampullator/xensieve-rs"
+repository = "https://github.com/ampullator/xensieve-rs"
 license = "MIT"
 readme = "README.md"
 
