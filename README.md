@@ -46,7 +46,7 @@ While all Sieves are, by definition, periodic, combinations of Residuals can res
 
 # The `xensieve.Sieve` Inteface
 
-The Sieves shown above can be created with `xensieve.Sieve` and used to produce iterators of integers, Boolean states, or interval widths. The `Sieve::new` constructor accepts arbitrarily complex Sieve expressions.
+The Sieves shown above can be created with `xensieve.Sieve` and used to produce iterators of integers, Boolean states, or interval widths. The `Sieve::new` constructor accepts arbitrarily complex Sieve expressions and builds a `Sieve<u64>`.
 
 ```rust
 use xensieve::Sieve;
@@ -54,6 +54,16 @@ use xensieve::Sieve;
 let s1 = Sieve::new("5@0");
 let s2 = Sieve::new("30@10");
 let s3 = Sieve::new("(5@0|4@2)&!30@10");
+```
+
+Sieve and Residual internals are generic over unsigned integer types. For explicit typed construction, use `Sieve::new_typed`:
+
+```rust
+use xensieve::Sieve;
+
+let s: Sieve<u32> = Sieve::new_typed("3@0|5@1|5@4");
+assert_eq!(s.to_string(), "Sieve{3@0|5@1|5@4}");
+assert!(s.contains(6));
 ```
 
 The `iter_value()` method takes an iterator if integers that can be used to "drive" the Sieve, either with ordered contiguous integers or arbitrary sequences. The iterator yields the subset of integers contained within the Sieve.
