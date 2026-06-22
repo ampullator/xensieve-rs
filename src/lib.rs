@@ -90,7 +90,6 @@ where
     T: UnsignedInt,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        // let n = if self.invert {String::from("!")} else {String::new()};
         write!(f, "{}@{}", self.modulus, self.shift)
     }
 }
@@ -296,8 +295,13 @@ impl<T> Sieve<T>
 where
     T: UnsignedInt,
 {
-    /// Construct a Xenakis Sieve from a string representation for an explicit unsigned integer type.
-    pub fn new_typed(value: &str) -> Self {
+    /// Construct a Xenakis Sieve from a string representation.
+    ///
+    /// ```
+    /// let s = xensieve::Sieve::<u64>::new("3@0|5@1");
+    /// assert_eq!(s.iter_value(0..15).collect::<Vec<_>>(), vec![0, 1, 3, 6, 9, 11, 12])
+    /// ````
+    pub fn new(value: &str) -> Self {
         let mut stack: Vec<Self> = Vec::new();
         for token in parser::infix_to_postfix(value).expect("Parsing failure") {
             match token.as_str() {
@@ -337,7 +341,7 @@ where
     /// Return `true` if the value is contained with this Sieve.
     ///
     /// ```
-    /// let s = xensieve::Sieve::new("3@0 & 5@0");
+    /// let s = xensieve::Sieve::<u64>::new("3@0 & 5@0");
     /// assert_eq!(s.contains(15), true);
     /// assert_eq!(s.contains(16), false);
     /// assert_eq!(s.contains(30), true);
@@ -348,7 +352,7 @@ where
 
     /// For the iterator provided as an input, iterate the subset of values that are contained within the sieve.
     /// ```
-    /// let s = xensieve::Sieve::new("3@0|4@0");
+    /// let s = xensieve::Sieve::<u64>::new("3@0|4@0");
     /// assert_eq!(s.iter_value(0..=12).collect::<Vec<_>>(), vec![0, 3, 4, 6, 8, 9, 12])
     /// ````
     pub fn iter_value(
@@ -364,7 +368,7 @@ where
 
     /// For the iterator provided as an input, iterate the Boolean status of contained.
     /// ```
-    /// let s = xensieve::Sieve::new("3@0|4@0");
+    /// let s = xensieve::Sieve::<u64>::new("3@0|4@0");
     /// assert_eq!(s.iter_state(0..=6).collect::<Vec<_>>(), vec![true, false, false, true, true, false, true])
     /// ````
     pub fn iter_state(
@@ -379,7 +383,7 @@ where
 
     /// Iterate over integer intervals between values in the sieve.
     /// ```
-    /// let s = xensieve::Sieve::new("3@0|4@0");
+    /// let s = xensieve::Sieve::<u64>::new("3@0|4@0");
     /// assert_eq!(s.iter_interval(0..=12).collect::<Vec<_>>(), vec![3, 1, 2, 2, 1, 3])
     /// ````
     pub fn iter_interval(
@@ -394,23 +398,11 @@ where
     }
 }
 
-impl Sieve<u64> {
-    /// Construct a Xenakis Sieve from a string representation.
-    ///
-    /// ```
-    /// let s = xensieve::Sieve::new("3@0|5@1");
-    /// assert_eq!(s.iter_value(0..15).collect::<Vec<_>>(), vec![0, 1, 3, 6, 9, 11, 12])
-    /// ````
-    pub fn new(value: &str) -> Self {
-        Self::new_typed(value)
-    }
-}
-
 //------------------------------------------------------------------------------
 
 /// The iterator returned by `iter_value`.
 /// ```
-/// let s = xensieve::Sieve::new("3@0|4@0");
+/// let s = xensieve::Sieve::<u64>::new("3@0|4@0");
 /// let mut s_iter = s.iter_value(17..);
 /// assert_eq!(s_iter.next().unwrap(), 18);
 /// assert_eq!(s_iter.next().unwrap(), 20);
@@ -441,7 +433,7 @@ where
 
 /// The iterator returned by `iter_state`.
 /// ```
-/// let s = xensieve::Sieve::new("3@0|4@0");
+/// let s = xensieve::Sieve::<u64>::new("3@0|4@0");
 /// let mut s_iter = s.iter_state(17..);
 /// assert_eq!(s_iter.next().unwrap(), false);
 /// assert_eq!(s_iter.next().unwrap(), true);
@@ -480,7 +472,7 @@ enum PositionLast {
 
 /// The iterator returned by `iter_interval`.
 /// ```
-/// let s = xensieve::Sieve::new("3@0|4@0");
+/// let s = xensieve::Sieve::<u64>::new("3@0|4@0");
 /// let mut s_iter = s.iter_interval(17..);
 /// assert_eq!(s_iter.next().unwrap(), 2);
 /// assert_eq!(s_iter.next().unwrap(), 1);
@@ -696,25 +688,25 @@ mod tests {
 
     #[test]
     fn test_sieve_new_a() {
-        let s1 = Sieve::new("3@1");
+        let s1: Sieve<u64> = Sieve::new("3@1");
         assert_eq!(s1.to_string(), "Sieve{3@1}");
     }
 
     #[test]
     fn test_sieve_new_b() {
-        let s1 = Sieve::new("3@4");
+        let s1: Sieve<u64> = Sieve::new("3@4");
         assert_eq!(s1.to_string(), "Sieve{3@1}");
     }
 
     #[test]
     fn test_sieve_new_c() {
-        let s1 = Sieve::new("5@5");
+        let s1: Sieve<u64> = Sieve::new("5@5");
         assert_eq!(s1.to_string(), "Sieve{5@0}");
     }
 
     #[test]
     fn test_sieve_new_d() {
-        let s1 = Sieve::new("0@5");
+        let s1: Sieve<u64> = Sieve::new("0@5");
         assert_eq!(s1.to_string(), "Sieve{0@0}");
     }
 
@@ -749,8 +741,8 @@ mod tests {
 
     #[test]
     fn test_sieve_operators_a() {
-        let s1 = Sieve::new("3@1");
-        let s2 = Sieve::new("4@0");
+        let s1: Sieve<u64> = Sieve::new("3@1");
+        let s2: Sieve<u64> = Sieve::new("4@0");
         let s3 = s1 | s2;
 
         assert_eq!(s3.to_string(), "Sieve{3@1|4@0}");
@@ -758,8 +750,8 @@ mod tests {
 
     #[test]
     fn test_sieve_operators_b() {
-        let s1 = Sieve::new("3@1");
-        let s2 = Sieve::new("4@0");
+        let s1: Sieve<u64> = Sieve::new("3@1");
+        let s2: Sieve<u64> = Sieve::new("4@0");
         let s3 = &s1 | &s2;
 
         assert_eq!(s3.to_string(), "Sieve{3@1|4@0}");
@@ -774,8 +766,8 @@ mod tests {
 
     #[test]
     fn test_sieve_operators_c() {
-        let s1 = Sieve::new("3@1");
-        let s2 = Sieve::new("4@0");
+        let s1: Sieve<u64> = Sieve::new("3@1");
+        let s2: Sieve<u64> = Sieve::new("4@0");
         let s3 = &s1 & &s2;
 
         assert_eq!(s3.to_string(), "Sieve{3@1&4@0}");
@@ -783,8 +775,8 @@ mod tests {
 
     #[test]
     fn test_sieve_operators_d() {
-        let s1 = Sieve::new("3@1");
-        let s2 = Sieve::new("4@0");
+        let s1: Sieve<u64> = Sieve::new("3@1");
+        let s2: Sieve<u64> = Sieve::new("4@0");
         let s3 = &s1 ^ &s2;
 
         assert_eq!(s3.to_string(), "Sieve{3@1^4@0}");
@@ -792,7 +784,7 @@ mod tests {
 
     #[test]
     fn test_sieve_operators_e() {
-        let s1 = Sieve::new("3@1");
+        let s1: Sieve<u64> = Sieve::new("3@1");
         let s3 = !&s1;
         assert_eq!(s3.to_string(), "Sieve{!(3@1)}");
 

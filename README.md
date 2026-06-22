@@ -46,22 +46,22 @@ While all Sieves are, by definition, periodic, combinations of Residuals can res
 
 # The `xensieve.Sieve` Inteface
 
-The Sieves shown above can be created with `xensieve.Sieve` and used to produce iterators of integers, Boolean states, or interval widths. The `Sieve::new` constructor accepts arbitrarily complex Sieve expressions and builds a `Sieve<u64>`.
+The Sieves shown above can be created with `xensieve.Sieve` and used to produce iterators of integers, Boolean states, or interval widths. The `Sieve::new` constructor accepts arbitrarily complex Sieve expressions. `Sieve` is generic over unsigned integer types and defaults to `u64`; annotate the binding to select a different type.
 
 ```rust
 use xensieve::Sieve;
 
-let s1 = Sieve::new("5@0");
-let s2 = Sieve::new("30@10");
-let s3 = Sieve::new("(5@0|4@2)&!30@10");
+let s1: Sieve<u64> = Sieve::new("5@0");
+let s2: Sieve<u64> = Sieve::new("30@10");
+let s3: Sieve<u64> = Sieve::new("(5@0|4@2)&!30@10");
 ```
 
-Sieve and Residual internals are generic over unsigned integer types. For explicit typed construction, use `Sieve::new_typed`:
+To construct a Sieve over a different unsigned integer type, annotate the binding accordingly:
 
 ```rust
 use xensieve::Sieve;
 
-let s: Sieve<u32> = Sieve::new_typed("3@0|5@1|5@4");
+let s: Sieve<u32> = Sieve::new("3@0|5@1|5@4");
 assert_eq!(s.to_string(), "Sieve{3@0|5@1|5@4}");
 assert!(s.contains(6));
 ```
@@ -102,7 +102,7 @@ assert_eq!(s3.contains(30), true);
 The `xensieve.Sieve` instance supports the same operators permitted in Sieve expressions, such that instances can be combined to build complex Sieves.
 
 ```rust
-let s4 = (Sieve::new("5@0") | Sieve::new("4@2")) & !Sieve::new("30@10");
+let s4: Sieve<u64> = (Sieve::new("5@0") | Sieve::new("4@2")) & !Sieve::new("30@10");
 assert_eq!(s4.to_string(), "Sieve{5@0|4@2&!(30@10)}");
 assert_eq!(s3.iter_value(0..100).collect::<Vec<_>>(), s4.iter_value(0..100).collect::<Vec<_>>());
 ```
