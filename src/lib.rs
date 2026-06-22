@@ -94,15 +94,23 @@ where
     }
 }
 
-impl<T> BitAnd for Residual<T>
+impl<T> Residual<T>
 where
     T: UnsignedInt,
 {
-    type Output = Residual<T>;
-
-    fn bitand(self, rhs: Self) -> Self::Output {
-        let (m, s) = util::intersection(self.modulus, rhs.modulus, self.shift, rhs.shift).unwrap();
-        Self::new(m, s)
+    /// Return the intersection of two Residuals as a new Residual.
+    ///
+    /// Combining two Residuals yields a modulus on the order of the least
+    /// common multiple of the inputs, which can exceed `T::MAX` for a narrow
+    /// `T`. In that case, or on arithmetic overflow, an `Err` is returned
+    /// rather than panicking.
+    // Crate-internal Residual algebra; currently exercised only by tests, as
+    // Sieve evaluation combines intersections logically rather than reducing
+    // Residuals.
+    #[allow(dead_code)]
+    pub(crate) fn intersect(self, rhs: Self) -> Result<Self, &'static str> {
+        let (m, s) = util::intersection(self.modulus, rhs.modulus, self.shift, rhs.shift)?;
+        Ok(Self::new(m, s))
     }
 }
 
@@ -617,31 +625,40 @@ mod tests {
     //--------------------------------------------------------------------------
 
     #[test]
-    fn test_residual_bitand_a() {
+    fn test_residual_intersect_a() {
         let r1 = Residual::<u64>::new(4, 0);
         let r2 = Residual::<u64>::new(3, 0);
-        assert_eq!((r1 & r2).to_string(), "12@0");
+        assert_eq!(r1.intersect(r2).unwrap().to_string(), "12@0");
     }
 
     #[test]
-    fn test_residual_bitand_b() {
+    fn test_residual_intersect_b() {
         let r1 = Residual::<u64>::new(4, 0);
         let r2 = Residual::<u64>::new(3, 1);
-        assert_eq!((r1 & r2).to_string(), "12@4");
+        assert_eq!(r1.intersect(r2).unwrap().to_string(), "12@4");
     }
 
     #[test]
-    fn test_residual_bitand_c() {
+    fn test_residual_intersect_c() {
         let r1 = Residual::<u64>::new(5, 2);
         let r2 = Residual::<u64>::new(10, 3);
-        assert_eq!((r1 & r2).to_string(), "0@0");
+        assert_eq!(r1.intersect(r2).unwrap().to_string(), "0@0");
     }
 
     #[test]
-    fn test_residual_bitand_d() {
+    fn test_residual_intersect_d() {
         let r1 = Residual::<u64>::new(3, 2);
         let r2 = Residual::<u64>::new(3, 1);
-        assert_eq!((r1 & r2).to_string(), "0@0");
+        assert_eq!(r1.intersect(r2).unwrap().to_string(), "0@0");
+    }
+
+    #[test]
+    fn test_residual_intersect_overflow() {
+        // The intersection modulus (lcm 360) exceeds u8::MAX, so the
+        // conversion back to T fails as an Err rather than panicking.
+        let r1 = Residual::<u8>::new(45, 11);
+        let r2 = Residual::<u8>::new(40, 1);
+        assert!(r1.intersect(r2).is_err());
     }
 
     //--------------------------------------------------------------------------
