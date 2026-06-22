@@ -54,7 +54,7 @@ impl<T> Residual<T>
 where
     T: UnsignedInt,
 {
-    pub(crate) fn new_typed(modulus: T, mut shift: T) -> Self {
+    pub(crate) fn new(modulus: T, mut shift: T) -> Self {
         if modulus.into() == 0 {
             shift = modulus;
         } else {
@@ -103,14 +103,7 @@ where
 
     fn bitand(self, rhs: Self) -> Self::Output {
         let (m, s) = util::intersection(self.modulus, rhs.modulus, self.shift, rhs.shift).unwrap();
-        Self::new_typed(m, s)
-    }
-}
-
-#[cfg(test)]
-impl Residual<u64> {
-    pub(crate) fn new(modulus: u64, shift: u64) -> Self {
-        Self::new_typed(modulus, shift)
+        Self::new(m, s)
     }
 }
 
@@ -330,7 +323,7 @@ where
                 operand => {
                     let (m, s) = parser::residual_to_ints::<T>(operand)
                         .expect("Invalid syntax: cannot parse Residual");
-                    let r = Residual::new_typed(m, s);
+                    let r = Residual::new(m, s);
                     let s = Self {
                         root: Rc::new(SieveNode::Unit(r)),
                     };
@@ -539,44 +532,44 @@ mod tests {
 
     #[test]
     fn test_residual_a() {
-        let r1 = Residual::new(3, 0);
+        let r1 = Residual::<u64>::new(3, 0);
         assert_eq!(r1.to_string(), String::from("3@0"));
     }
 
     #[test]
     fn test_residual_b() {
-        let r1 = Residual::new(0, 2);
+        let r1 = Residual::<u64>::new(0, 2);
         assert_eq!(r1.to_string(), "0@0");
     }
 
     //--------------------------------------------------------------------------
     #[test]
     fn test_residual_to_string_a() {
-        let r1 = Residual::new(3, 0);
+        let r1 = Residual::<u64>::new(3, 0);
         assert_eq!(r1.to_string(), "3@0");
     }
 
     #[test]
     fn test_residual_to_string_b() {
-        let r1 = Residual::new(8, 3);
+        let r1 = Residual::<u64>::new(8, 3);
         assert_eq!(r1.to_string(), "8@3");
     }
 
     #[test]
     fn test_residual_to_string_c() {
-        let r1 = Residual::new(5, 8);
+        let r1 = Residual::<u64>::new(5, 8);
         assert_eq!(r1.to_string(), "5@3");
     }
 
     #[test]
     fn test_residual_to_string_d() {
-        let r1 = Residual::new(5, 9);
+        let r1 = Residual::<u64>::new(5, 9);
         assert_eq!(r1.to_string(), "5@4");
     }
 
     #[test]
     fn test_residual_to_string_e() {
-        let r1 = Residual::new(5, 10);
+        let r1 = Residual::<u64>::new(5, 10);
         assert_eq!(r1.to_string(), "5@0");
     }
 
@@ -584,7 +577,7 @@ mod tests {
 
     // #[test]
     // fn test_residual_not_a() {
-    //     let r1 = Residual::new(5, 10);
+    //     let r1 = Residual::<u64>::new(5, 10);
     //     assert_eq!(r1.to_string(), String::from("!5@0"));
     //     let r2 = !r1;
     //     assert_eq!(r2.to_string(), "5@0");
@@ -594,38 +587,38 @@ mod tests {
 
     #[test]
     fn test_residual_eq_a() {
-        let r1 = Residual::new(5, 2);
-        let r2 = Residual::new(5, 3);
+        let r1 = Residual::<u64>::new(5, 2);
+        let r2 = Residual::<u64>::new(5, 3);
         assert_eq!(r1 == r2, false);
         assert_eq!(r1 != r2, true);
     }
 
     #[test]
     fn test_residual_eq_b() {
-        let r1 = Residual::new(5, 2);
-        let r2 = Residual::new(5, 2);
+        let r1 = Residual::<u64>::new(5, 2);
+        let r2 = Residual::<u64>::new(5, 2);
         assert_eq!(r1 == r2, true);
         assert_eq!(r1 != r2, false);
     }
 
     #[test]
     fn test_residual_ord_a() {
-        let r1 = Residual::new(5, 2);
-        let r2 = Residual::new(5, 3);
+        let r1 = Residual::<u64>::new(5, 2);
+        let r2 = Residual::<u64>::new(5, 3);
         assert!(r1 < r2);
     }
 
     #[test]
     fn test_residual_ord_b() {
-        let r1 = Residual::new(2, 3);
-        let r2 = Residual::new(5, 3);
+        let r1 = Residual::<u64>::new(2, 3);
+        let r2 = Residual::<u64>::new(5, 3);
         assert!(r1 < r2);
     }
 
     #[test]
     fn test_residual_ord_c() {
-        let r1 = Residual::new(5, 3);
-        let r2 = Residual::new(5, 3);
+        let r1 = Residual::<u64>::new(5, 3);
+        let r2 = Residual::<u64>::new(5, 3);
         assert!(r1 == r2);
     }
 
@@ -633,29 +626,29 @@ mod tests {
 
     #[test]
     fn test_residual_bitand_a() {
-        let r1 = Residual::new(4, 0);
-        let r2 = Residual::new(3, 0);
+        let r1 = Residual::<u64>::new(4, 0);
+        let r2 = Residual::<u64>::new(3, 0);
         assert_eq!((r1 & r2).to_string(), "12@0");
     }
 
     #[test]
     fn test_residual_bitand_b() {
-        let r1 = Residual::new(4, 0);
-        let r2 = Residual::new(3, 1);
+        let r1 = Residual::<u64>::new(4, 0);
+        let r2 = Residual::<u64>::new(3, 1);
         assert_eq!((r1 & r2).to_string(), "12@4");
     }
 
     #[test]
     fn test_residual_bitand_c() {
-        let r1 = Residual::new(5, 2);
-        let r2 = Residual::new(10, 3);
+        let r1 = Residual::<u64>::new(5, 2);
+        let r2 = Residual::<u64>::new(10, 3);
         assert_eq!((r1 & r2).to_string(), "0@0");
     }
 
     #[test]
     fn test_residual_bitand_d() {
-        let r1 = Residual::new(3, 2);
-        let r2 = Residual::new(3, 1);
+        let r1 = Residual::<u64>::new(3, 2);
+        let r2 = Residual::<u64>::new(3, 1);
         assert_eq!((r1 & r2).to_string(), "0@0");
     }
 
@@ -663,7 +656,7 @@ mod tests {
 
     #[test]
     fn test_residual_contains_a() {
-        let r1 = Residual::new(3, 0);
+        let r1 = Residual::<u64>::new(3, 0);
         assert_eq!(r1.contains(-3), true);
         assert_eq!(r1.contains(-2), false);
         assert_eq!(r1.contains(-1), false);
@@ -677,7 +670,7 @@ mod tests {
 
     #[test]
     fn test_residual_contains_b() {
-        let r1 = Residual::new(0, 0);
+        let r1 = Residual::<u64>::new(0, 0);
         assert_eq!(r1.contains(-2), false);
         assert_eq!(r1.contains(-1), false);
         assert_eq!(r1.contains(0), false);
@@ -688,7 +681,7 @@ mod tests {
 
     #[test]
     fn test_residual_contains_c() {
-        let r1 = Residual::new(3, 1);
+        let r1 = Residual::<u64>::new(3, 1);
         assert_eq!(r1.contains(-3), false);
         assert_eq!(r1.contains(-2), true);
         assert_eq!(r1.contains(-1), false);
@@ -727,7 +720,7 @@ mod tests {
 
     #[test]
     fn test_sieve_contains_a() {
-        let r1 = Residual::new(3, 0);
+        let r1 = Residual::<u64>::new(3, 0);
         let s1 = SieveNode::Unit(r1);
 
         let pos = vec![-3, -2, -1, 0, 1];
@@ -739,8 +732,8 @@ mod tests {
 
     #[test]
     fn test_sieve_contains_b() {
-        let r1 = Residual::new(3, 0);
-        let r2 = Residual::new(3, 1);
+        let r1 = Residual::<u64>::new(3, 0);
+        let r2 = Residual::<u64>::new(3, 1);
         let s1 = SieveNode::Union(Rc::new(SieveNode::Unit(r1)), Rc::new(SieveNode::Unit(r2)));
 
         assert_eq!(s1.contains(-2), true);
